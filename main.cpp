@@ -10,8 +10,33 @@
 #include "src/TratamientoImagenes.h"
 #include "src/GestorArchivos.h"
 
-namespace fs = std::filesystem;
 int numeroHilos = 4;
+
+void imprimirImagen(FingerPrintImage &imagen)
+{
+    cv::Mat imagenSalida(imagen.getHeight(), imagen.getWidth(), CV_8UC3);
+#pragma omp parallel
+    {
+#pragma omp for collapse(2)
+        // Copiar la huella (fondo blanco/negro) a la imagen a color
+        for (int x = 0; x < imagen.getWidth(); ++x)
+        {
+            for (int y = 0; y < imagen.getHeight(); ++y)
+            {
+                int nivelGris = imagen.getPixel(x, y);
+                cv::Vec3b color;
+                // Si es 255 (fondo) -> blanco, si es 0 (huella) -> negro
+                if (nivelGris == 255)
+                    color = cv::Vec3b(255, 255, 255);
+                else
+                    color = cv::Vec3b(0, 0, 0);
+
+                imagenSalida.at<cv::Vec3b>(y, x) = nivelGris;
+            }
+        }
+    }
+    cv::imwrite("./output/HuellaProcesada.jpg", imagenSalida);
+}
 
 int main()
 {
@@ -19,7 +44,6 @@ int main()
     cv::Mat imagenActual = cv::imread("./assets/Huella.jpg");
     try
     {
-
         omp_set_num_threads(numeroHilos);
 
         double inicio = omp_get_wtime(); // Inicio para el tiempo de procesamiento
@@ -39,19 +63,8 @@ int main()
         // Algoritmo de Zhang-Suen (Adelgaza las lineas)
         FingerPrintImage imagenZhangSuen = ZhangSuen::thinning(imagenFiltrada2);
 
-        // Minucias (encuentra donde termina o se dividen las lineas)
-        std::vector<Minutia> minucias = TratamientoImagenes::detectarMinucias(imagenZhangSuen);
-        // Calcula la orientacion de cada minucia
-        TratamientoImagenes::calcularAngulos(imagenZhangSuen, minucias);
-
-        // Escribimos las minucias en el archivo de texto
-        // GestorArchivos::guardarMinucias(rutaBaseDatos, minucias); //TODO: cambiar la ruta destino
-
-        // Generar salida visual (BufferedImage -> cv::Mat)
-        cv::Mat salidaMinucias = TratamientoImagenes::convertirAGrisesRGBMinucias(imagenZhangSuen, minucias);
-
-        // Guardar la imagen (ImageIO.write -> cv::imwrite)
-        // cv::imwrite(rutaSalida, salidaMinucias); //TODO: :cambiar la ruta destino
+        FingerPrintImage imagen = imagenEcualizada;
+        imprimirImagen(imagen);
 
         float fin = omp_get_wtime(); // Fin para el tiempo de procesamiento
         std::cout << "\nProceso finalizado." << std::endl;
