@@ -1,0 +1,8 @@
+[
+{
+  "directory": "C:/Users/gonza/Desktop/Universidad/apuntes_uni/CP/ProyectoCP_2025_2026/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe -isystem C:/msys64/ucrt64/include/opencv4 -g -fopenmp -o CMakeFiles\\main.dir\\main.cpp.obj -c C:\\Users\\gonza\\Desktop\\Universidad\\apuntes_uni\\CP\\ProyectoCP_2025_2026\\main.cpp",
+  "file": "C:/Users/gonza/Desktop/Universidad/apuntes_uni/CP/ProyectoCP_2025_2026/main.cpp",
+  "output": "C:/Users/gonza/Desktop/Universidad/apuntes_uni/CP/ProyectoCP_2025_2026/build/CMakeFiles/main.dir/main.cpp.obj"
+}
+]
