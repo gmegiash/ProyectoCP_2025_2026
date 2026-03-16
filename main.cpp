@@ -5,10 +5,8 @@
 #include <filesystem> // Necesario para recorrer carpetas
 
 #include "src/FingerPrintImage.h"
-#include "src/Minutia.h"
 #include "src/ZhangSuen.h"
 #include "src/TratamientoImagenes.h"
-#include "src/GestorArchivos.h"
 
 int numeroHilos = 4;
 
