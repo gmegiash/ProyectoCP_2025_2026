@@ -10,6 +10,12 @@
 
 int numeroHilos = 4;
 
+namespace fs = std::filesystem;
+fs::path ruta_proyecto = fs::current_path();
+fs::path carpeta_salida = ruta_proyecto / "output";
+fs::path ruta_salida = carpeta_salida / "HuellaProcesada.jpg";
+fs::path ruta_imagen = ruta_proyecto / "assets" / "Huella.jpg";
+
 void imprimirImagen(FingerPrintImage &imagen)
 {
     cv::Mat imagenSalida(imagen.getHeight(), imagen.getWidth(), CV_8UC3);
@@ -33,13 +39,13 @@ void imprimirImagen(FingerPrintImage &imagen)
             }
         }
     }
-    cv::imwrite("./output/HuellaProcesada.jpg", imagenSalida);
+    cv::imwrite(ruta_salida.string(), imagenSalida);
 }
 
 int main()
 {
     // Carga de imagenes (rutas)
-    cv::Mat imagenActual = cv::imread("./assets/Huella.jpg");
+    cv::Mat imagenActual = cv::imread(ruta_imagen.string());
     try
     {
         omp_set_num_threads(numeroHilos);
