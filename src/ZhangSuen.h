@@ -71,7 +71,7 @@ public:
                             continue;
 
                         marker[x][y] = true;
-#pragma omp atomic // #pragma omp critical (Si funciona quedar atomic que es mas rapido)
+#pragma omp critical // #pragma omp critical (Si funciona quedar atomic que es mas rapido)
                         change = true;
                     }
                 }
@@ -130,7 +130,7 @@ public:
                             continue;
 
                         marker[x][y] = true;
-#pragma omp atomic // #pragma omp critical (Si funciona quedar atomic que es mas rapido)
+#pragma omp critical // #pragma omp atomic (Si funciona quedar atomic que es mas rapido)
                         change = true;
                     }
                 }
