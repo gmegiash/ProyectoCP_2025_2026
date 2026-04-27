@@ -35,7 +35,7 @@ int main()
         double inicio = omp_get_wtime(); // Inicio para el tiempo de procesamiento
 
         // Pasa de color a gris
-        FingerPrintImage imagenGrisesA = TratamientoImagenes::convertirAGrisesPromedio(imagenActual);
+        FingerPrintImage imagenGrisesA = TratamientoImagenes::convertirAGrises(imagenActual);
         // Mejora el contraste
         FingerPrintImage imagenEcualizada = TratamientoImagenes::ecualizarHistograma(imagenGrisesA);
 
@@ -43,11 +43,7 @@ int main()
 
         // Convierte todo a blanco (255) o negro (0)
         FingerPrintImage imagenByN = TratamientoImagenes::binarizarImagen(imagenEcualizada);
-        // Limpian ruido
-        FingerPrintImage imagenFiltrada1 = TratamientoImagenes::filtroBinario1(imagenByN);
-        FingerPrintImage imagenFiltrada2 = TratamientoImagenes::filtroBinario2(imagenFiltrada1);
-
-        FingerPrintImage imagenFinal = imagenFiltrada2;
+        FingerPrintImage imagenFinal = imagenByN;
 
         // Creamos una matriz de OpenCV del mismo tamaño que nuestra imagen procesada
         cv::Mat matFinal(imagenFinal.getHeight(), imagenFinal.getWidth(), CV_8UC1);
@@ -62,7 +58,7 @@ int main()
             }
         }
 
-        // Mostrar la ventana con el resultado
+        // Guardar en salida
         cv::imwrite(ruta_salida.string(), matFinal);
 
         float fin = omp_get_wtime(); // Fin para el tiempo de procesamiento
