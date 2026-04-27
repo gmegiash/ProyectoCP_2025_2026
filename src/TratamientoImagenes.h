@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cmath>
 #include <opencv2/opencv.hpp>
-#include "FingerPrintImage.h"
+#include "BufferImage.h"
 
 // Variables globales para direcciones (las hacemos constates para que sea seguro incluirlo en un .h)
 static int dx[] = {0, 1, 1, 1, 0, -1, -1, -1, 0};
@@ -14,9 +14,9 @@ static int dy[] = {-1, -1, 0, 1, 1, 1, 0, -1, -1};
 class TratamientoImagenes
 {
 public:
-    static FingerPrintImage convertirAGrises(const cv::Mat &imagenEntrada)
+    static BufferImage convertirAGrisesPromedio(const cv::Mat &imagenEntrada)
     {
-        FingerPrintImage imagenSalida(imagenEntrada.cols, imagenEntrada.rows);
+        BufferImage imagenSalida(imagenEntrada.cols, imagenEntrada.rows);
 
 #pragma omp parallel for collapse(2)
         for (int x = 0; x < imagenEntrada.cols; ++x)
@@ -35,13 +35,13 @@ public:
         return imagenSalida;
     }
 
-    static FingerPrintImage ecualizarHistograma(const FingerPrintImage &imagenEntrada)
+    static BufferImage ecualizarHistograma(const BufferImage &imagenEntrada)
     {
         int width = imagenEntrada.getWidth();
         int height = imagenEntrada.getHeight();
         int totalPixeles = width * height;
         std::vector<int> histograma(256, 0);
-        FingerPrintImage imagenEcualizada(width, height);
+        BufferImage imagenEcualizada(width, height);
         // LUT: Si la imagen es muy grisaces, esto la distribuye para usar negros puros y blancos puros
         std::vector<float> LUT(256);
         int suma = 0;
@@ -81,7 +81,7 @@ public:
         return imagenEcualizada;
     }
 
-    static void calcularEstadisticas(FingerPrintImage &imagen)
+    static void calcularEstadisticas(BufferImage &imagen)
     {
         int max_val = -1;
         int min_val = 300;
@@ -106,11 +106,11 @@ public:
         imagen.setEstadisticas(max_val, min_val, (float)suma / total);
     }
 
-    static FingerPrintImage binarizarImagen(const FingerPrintImage &imagen)
+    static BufferImage binarizarImagen(const BufferImage &imagen)
     {
         int width = imagen.getWidth(), height = imagen.getHeight();
         float umbral = imagen.getMedia();
-        FingerPrintImage salida(width, height);
+        BufferImage salida(width, height);
 
 #pragma omp parallel for collapse(2)
         for (int x = 0; x < width; x++)
@@ -119,6 +119,59 @@ public:
             {
                 int pixel = imagen.getPixel(x, y);
                 salida.setPixel(x, y, (pixel > umbral) ? 255 : 0);
+            }
+        }
+        return salida;
+    }
+
+    static BufferImage filtroBinario1(const BufferImage &imagen)
+    {
+        int width = imagen.getWidth(), height = imagen.getHeight();
+        BufferImage salida(width, height);
+
+#pragma omp parallel for collapse(2)
+        for (int x = 1; x < width - 1; x++)
+        {
+            for (int y = 1; y < height - 1; y++)
+            {
+                int p = (imagen.getPixel(x, y) == 255) ? 1 : 0;
+                int b = (imagen.getPixel(x, y - 1) == 255) ? 1 : 0;
+                int g = (imagen.getPixel(x - 1, y) == 255) ? 1 : 0;
+                int d = (imagen.getPixel(x + 1, y) == 255) ? 1 : 0;
+                int e = (imagen.getPixel(x, y + 1) == 255) ? 1 : 0;
+
+                // Buscamos rellenar huecos o eliminar pixeles que no tienen suficientes vecinos conectados
+                int nuevoPixel = p | (b & g & (d | e)) | (d & e & (b | g));
+                salida.setPixel(x, y, (nuevoPixel != 0) ? 255 : 0);
+            }
+        }
+        return salida;
+    }
+
+    static BufferImage filtroBinario2(const BufferImage &imagen)
+    {
+        int width = imagen.getWidth(), height = imagen.getHeight();
+        BufferImage salida(width, height);
+
+#pragma omp parallel for collapse(2)
+        for (int x = 1; x < width - 1; x++)
+        {
+            for (int y = 1; y < height - 1; y++)
+            {
+                int a = (imagen.getPixel(x - 1, y - 1) == 255) ? 1 : 0;
+                int b = (imagen.getPixel(x, y - 1) == 255) ? 1 : 0;
+                int c = (imagen.getPixel(x + 1, y - 1) == 255) ? 1 : 0;
+                int d = (imagen.getPixel(x - 1, y) == 255) ? 1 : 0;
+                int e = (imagen.getPixel(x + 1, y) == 255) ? 1 : 0;
+                int f = (imagen.getPixel(x - 1, y + 1) == 255) ? 1 : 0;
+                int g = (imagen.getPixel(x, y + 1) == 255) ? 1 : 0;
+                int h = (imagen.getPixel(x + 1, y + 1) == 255) ? 1 : 0;
+                int p = (imagen.getPixel(x, y) == 255) ? 1 : 0;
+
+                int term1 = (a | b | d) & (e | g | h);
+                int term2 = (b | c | e) & (d | f | g);
+                int nuevoPixel = p & (term1 | term2);
+                salida.setPixel(x, y, (nuevoPixel != 0) ? 255 : 0);
             }
         }
         return salida;

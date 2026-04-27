@@ -4,13 +4,31 @@
 #include <omp.h>
 #include <filesystem> // Necesario para recorrer carpetas
 
-#include "src/FingerPrintImage.h"
+#include "src/BufferImage.h"
 #include "src/TratamientoImagenes.h"
 
 int numeroHilos = 4;
 
 namespace fs = std::filesystem;
 fs::path ruta_proyecto = fs::current_path();
+
+void imprimirImagen(fs::path ruta_salida, const BufferImage &imagenFinal)
+{
+    // Creamos una matriz de OpenCV del mismo tamaño que nuestra imagen procesada
+    cv::Mat matFinal(imagenFinal.getHeight(), imagenFinal.getWidth(), CV_8UC1);
+#pragma omp parallel for collapse(2)
+    for (int x = 0; x < imagenFinal.getWidth(); ++x)
+    {
+        for (int y = 0; y < imagenFinal.getHeight(); ++y)
+        {
+            // Pasamos el valor del pixel directamente (0 o 255)
+            matFinal.at<uchar>(y, x) = (uchar)imagenFinal.getPixel(x, y);
+        }
+    }
+
+    // Mostrar la ventana con el resultado
+    cv::imwrite(ruta_salida.string(), matFinal);
+}
 
 int main()
 {
@@ -35,33 +53,23 @@ int main()
         double inicio = omp_get_wtime(); // Inicio para el tiempo de procesamiento
 
         // Pasa de color a gris
-        FingerPrintImage imagenGrisesA = TratamientoImagenes::convertirAGrises(imagenActual);
+        BufferImage imagenGrisesA = TratamientoImagenes::convertirAGrisesPromedio(imagenActual);
         // Mejora el contraste
-        FingerPrintImage imagenEcualizada = TratamientoImagenes::ecualizarHistograma(imagenGrisesA);
+        BufferImage imagenEcualizada = TratamientoImagenes::ecualizarHistograma(imagenGrisesA);
 
         TratamientoImagenes::calcularEstadisticas(imagenEcualizada);
 
         // Convierte todo a blanco (255) o negro (0)
-        FingerPrintImage imagenByN = TratamientoImagenes::binarizarImagen(imagenEcualizada);
-        FingerPrintImage imagenFinal = imagenByN;
+        BufferImage imagenByN = TratamientoImagenes::binarizarImagen(imagenEcualizada);
+        // Limpian ruido
+        BufferImage imagenFiltrada1 = TratamientoImagenes::filtroBinario1(imagenByN);
+        BufferImage imagenFiltrada2 = TratamientoImagenes::filtroBinario2(imagenFiltrada1);
 
-        // Creamos una matriz de OpenCV del mismo tamaño que nuestra imagen procesada
-        cv::Mat matFinal(imagenFinal.getHeight(), imagenFinal.getWidth(), CV_8UC1);
+        BufferImage imagenFinal = imagenFiltrada2;
 
-#pragma omp parallel for collapse(2)
-        for (int x = 0; x < imagenFinal.getWidth(); ++x)
-        {
-            for (int y = 0; y < imagenFinal.getHeight(); ++y)
-            {
-                // Pasamos el valor del pixel directamente (0 o 255)
-                matFinal.at<uchar>(y, x) = (uchar)imagenFinal.getPixel(x, y);
-            }
-        }
+        imprimirImagen(ruta_salida, imagenFinal);
 
-        // Guardar en salida
-        cv::imwrite(ruta_salida.string(), matFinal);
-
-        float fin = omp_get_wtime(); // Fin para el tiempo de procesamiento
+        double fin = omp_get_wtime(); // Fin para el tiempo de procesamiento
         std::cout << "\nProceso finalizado." << std::endl;
 
         std::cout << "Imagenes creadas y guardadas correctamente." << std::endl;

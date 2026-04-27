@@ -1,9 +1,9 @@
-#ifndef FINGERPRINTIMAGE_H
-#define FINGERPRINTIMAGE_H
+#ifndef BUFFERIMAGE_H
+#define BUFFERIMAGE_H
 
 #include <vector>
 
-class FingerPrintImage {
+class BufferImage {
 private:
     int width;
     int height;
@@ -15,7 +15,7 @@ private:
     float promedio;
 
 public:
-    FingerPrintImage(int width, int height) : width(width), height(height) {
+    BufferImage(int width, int height) : width(width), height(height) {
         // Inicializar la matriz [width][height]
         img.resize(width, std::vector<int>(height, 0));
     }
