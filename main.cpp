@@ -5,47 +5,29 @@
 #include <filesystem> // Necesario para recorrer carpetas
 
 #include "src/FingerPrintImage.h"
-#include "src/ZhangSuen.h"
 #include "src/TratamientoImagenes.h"
 
 int numeroHilos = 4;
 
 namespace fs = std::filesystem;
 fs::path ruta_proyecto = fs::current_path();
-fs::path carpeta_salida = ruta_proyecto / "output";
-fs::path ruta_salida = carpeta_salida / "HuellaProcesada.jpg";
-fs::path ruta_imagen = ruta_proyecto / "assets" / "Huella.jpg";
-
-void imprimirImagen(FingerPrintImage &imagen)
-{
-    cv::Mat imagenSalida(imagen.getHeight(), imagen.getWidth(), CV_8UC3);
-#pragma omp parallel
-    {
-#pragma omp for collapse(2)
-        // Copiar la huella (fondo blanco/negro) a la imagen a color
-        for (int x = 0; x < imagen.getWidth(); ++x)
-        {
-            for (int y = 0; y < imagen.getHeight(); ++y)
-            {
-                int nivelGris = imagen.getPixel(x, y);
-                cv::Vec3b color;
-                // Si es 255 (fondo) -> blanco, si es 0 (huella) -> negro
-                if (nivelGris == 255)
-                    color = cv::Vec3b(255, 255, 255);
-                else
-                    color = cv::Vec3b(0, 0, 0);
-
-                imagenSalida.at<cv::Vec3b>(y, x) = nivelGris;
-            }
-        }
-    }
-    cv::imwrite(ruta_salida.string(), imagenSalida);
-}
 
 int main()
 {
+    if (ruta_proyecto.filename() == "build")
+        ruta_proyecto = ruta_proyecto.parent_path();
+
+    fs::path ruta_salida = ruta_proyecto / "output" / "LosDiozeProcesada.jpg";
+    fs::path ruta_imagen = ruta_proyecto / "assets" / "LosDioze.jpg";
+
     // Carga de imagenes (rutas)
     cv::Mat imagenActual = cv::imread(ruta_imagen.string());
+    if (imagenActual.empty())
+    {
+        std::cerr << "ERROR: No se pudo cargar la imagen." << std::endl;
+        return -1;
+    }
+
     try
     {
         omp_set_num_threads(numeroHilos);
@@ -56,19 +38,32 @@ int main()
         FingerPrintImage imagenGrisesA = TratamientoImagenes::convertirAGrisesPromedio(imagenActual);
         // Mejora el contraste
         FingerPrintImage imagenEcualizada = TratamientoImagenes::ecualizarHistograma(imagenGrisesA);
-        // Calcula el promedio de luz para usarlo como umbral
+
         TratamientoImagenes::calcularEstadisticas(imagenEcualizada);
+
         // Convierte todo a blanco (255) o negro (0)
         FingerPrintImage imagenByN = TratamientoImagenes::binarizarImagen(imagenEcualizada);
         // Limpian ruido
         FingerPrintImage imagenFiltrada1 = TratamientoImagenes::filtroBinario1(imagenByN);
         FingerPrintImage imagenFiltrada2 = TratamientoImagenes::filtroBinario2(imagenFiltrada1);
 
-        // Algoritmo de Zhang-Suen (Adelgaza las lineas)
-        FingerPrintImage imagenZhangSuen = ZhangSuen::thinning(imagenFiltrada2);
+        FingerPrintImage imagenFinal = imagenFiltrada2;
 
-        FingerPrintImage imagen = imagenEcualizada;
-        imprimirImagen(imagen);
+        // Creamos una matriz de OpenCV del mismo tamaño que nuestra imagen procesada
+        cv::Mat matFinal(imagenFinal.getHeight(), imagenFinal.getWidth(), CV_8UC1);
+
+#pragma omp parallel for collapse(2)
+        for (int x = 0; x < imagenFinal.getWidth(); ++x)
+        {
+            for (int y = 0; y < imagenFinal.getHeight(); ++y)
+            {
+                // Pasamos el valor del pixel directamente (0 o 255)
+                matFinal.at<uchar>(y, x) = (uchar)imagenFinal.getPixel(x, y);
+            }
+        }
+
+        // Mostrar la ventana con el resultado
+        cv::imwrite(ruta_salida.string(), matFinal);
 
         float fin = omp_get_wtime(); // Fin para el tiempo de procesamiento
         std::cout << "\nProceso finalizado." << std::endl;
