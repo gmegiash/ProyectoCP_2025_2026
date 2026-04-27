@@ -60,12 +60,14 @@ public:
                 }
             }
 
-#pragma omp for reduction(+ : suma)
+#pragma omp single
+        {
             for (int i = 0; i < 256; i++)
             {
                 suma += histograma[i];
                 LUT[i] = (float)suma * 255 / totalPixeles;
             }
+        }
 
 #pragma omp for collapse(2)
             for (int x = 0; x < width; x++)
@@ -109,7 +111,7 @@ public:
     static BufferImage binarizarImagen(const BufferImage &imagen)
     {
         int width = imagen.getWidth(), height = imagen.getHeight();
-        float umbral = imagen.getMedia();
+        float umbral = imagen.getMedia() * 1.4f; // Umbral ajustado al 90% de la media para obtener un resultado más equilibrado
         BufferImage salida(width, height);
 
 #pragma omp parallel for collapse(2)
@@ -172,6 +174,30 @@ public:
                 int term2 = (b | c | e) & (d | f | g);
                 int nuevoPixel = p & (term1 | term2);
                 salida.setPixel(x, y, (nuevoPixel != 0) ? 255 : 0);
+            }
+        }
+        return salida;
+    }
+
+    static BufferImage filtroSobel(const BufferImage &imagen)
+    {
+        int width = imagen.getWidth(), height = imagen.getHeight();
+        BufferImage salida(width, height);
+#pragma omp parallel for collapse(2)
+        for (int x = 1; x < width - 1; x++)
+        {
+            for (int y = 1; y < height - 1; y++)
+            {
+                int Gx = (-1 * imagen.getPixel(x - 1, y - 1)) + (0 * imagen.getPixel(x, y - 1)) + (1 * imagen.getPixel(x + 1, y - 1)) +
+                         (-2 * imagen.getPixel(x - 1, y)) + (0 * imagen.getPixel(x, y)) + (2 * imagen.getPixel(x + 1, y)) +
+                         (-1 * imagen.getPixel(x - 1, y + 1)) + (0 * imagen.getPixel(x, y + 1)) + (1 * imagen.getPixel(x + 1, y + 1));
+
+                int Gy = (1 * imagen.getPixel(x - 1, y - 1)) + (2 * imagen.getPixel(x, y - 1)) + (1 * imagen.getPixel(x + 1, y - 1)) +
+                         (0 * imagen.getPixel(x - 1, y)) + (0 * imagen.getPixel(x, y)) + (0 * imagen.getPixel(x + 1, y)) +
+                         (-1 * imagen.getPixel(x - 1, y + 1)) + (-2 * imagen.getPixel(x, y + 1)) + (-1 * imagen.getPixel(x + 1, y + 1));
+
+                int magnitud = std::min(255, static_cast<int>(std::sqrt(Gx * Gx + Gy * Gy)));
+                salida.setPixel(x, y, magnitud);
             }
         }
         return salida;

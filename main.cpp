@@ -7,36 +7,26 @@
 #include "src/BufferImage.h"
 #include "src/TratamientoImagenes.h"
 
-int numeroHilos = 4;
-
 namespace fs = std::filesystem;
 fs::path ruta_proyecto = fs::current_path();
 
-void imprimirImagen(fs::path ruta_salida, const BufferImage &imagenFinal)
+int main(int argc, char *argv[])
 {
-    // Creamos una matriz de OpenCV del mismo tamaño que nuestra imagen procesada
-    cv::Mat matFinal(imagenFinal.getHeight(), imagenFinal.getWidth(), CV_8UC1);
-#pragma omp parallel for collapse(2)
-    for (int x = 0; x < imagenFinal.getWidth(); ++x)
+    int numThreads;
+    if (argc != 3)
     {
-        for (int y = 0; y < imagenFinal.getHeight(); ++y)
-        {
-            // Pasamos el valor del pixel directamente (0 o 255)
-            matFinal.at<uchar>(y, x) = (uchar)imagenFinal.getPixel(x, y);
-        }
+        std::cout << "Uso: " << argv[0] << " <num_threads> <input_image_path>" << std::endl;
+        return -1;
     }
 
-    // Mostrar la ventana con el resultado
-    cv::imwrite(ruta_salida.string(), matFinal);
-}
+    numThreads = std::stoi(argv[1]);
+    fs::path ruta_imagen = fs::path(argv[2]);
 
-int main()
-{
+    
     if (ruta_proyecto.filename() == "build")
         ruta_proyecto = ruta_proyecto.parent_path();
 
-    fs::path ruta_salida = ruta_proyecto / "output" / "LosDiozeProcesada.jpg";
-    fs::path ruta_imagen = ruta_proyecto / "assets" / "LosDioze.jpg";
+    fs::path ruta_salida = ruta_proyecto / "output";
 
     // Carga de imagenes (rutas)
     cv::Mat imagenActual = cv::imread(ruta_imagen.string());
@@ -48,26 +38,29 @@ int main()
 
     try
     {
-        omp_set_num_threads(numeroHilos);
+        omp_set_num_threads(numThreads);
 
         double inicio = omp_get_wtime(); // Inicio para el tiempo de procesamiento
 
         // Pasa de color a gris
         BufferImage imagenGrisesA = TratamientoImagenes::convertirAGrisesPromedio(imagenActual);
+        fs::path rutaSalidaGrisesA = ruta_salida / "grises.jpg";
+        imagenGrisesA.imprimirImagen(rutaSalidaGrisesA);
         // Mejora el contraste
         BufferImage imagenEcualizada = TratamientoImagenes::ecualizarHistograma(imagenGrisesA);
+        fs::path rutaSalidaEcualizada = ruta_salida / "ecualizada.jpg";
+        imagenEcualizada.imprimirImagen(rutaSalidaEcualizada);
 
         TratamientoImagenes::calcularEstadisticas(imagenEcualizada);
 
         // Convierte todo a blanco (255) o negro (0)
         BufferImage imagenByN = TratamientoImagenes::binarizarImagen(imagenEcualizada);
-        // Limpian ruido
-        BufferImage imagenFiltrada1 = TratamientoImagenes::filtroBinario1(imagenByN);
-        BufferImage imagenFiltrada2 = TratamientoImagenes::filtroBinario2(imagenFiltrada1);
+        fs::path rutaSalidaByN = ruta_salida / "byn.jpg";
+        imagenByN.imprimirImagen(rutaSalidaByN);
 
-        BufferImage imagenFinal = imagenFiltrada2;
-
-        imprimirImagen(ruta_salida, imagenFinal);
+        BufferImage imagenSobel = TratamientoImagenes::filtroSobel(imagenByN);
+        fs::path rutaSalidaSobel = ruta_salida / "sobel.jpg";
+        imagenSobel.imprimirImagen(rutaSalidaSobel);
 
         double fin = omp_get_wtime(); // Fin para el tiempo de procesamiento
         std::cout << "\nProceso finalizado." << std::endl;
