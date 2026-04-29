@@ -54,9 +54,11 @@ int main(int argc, char *argv[])
         TratamientoImagenes::calcularEstadisticas(imagenEcualizada);
 
         // Convierte todo a blanco (255) o negro (0)
+
         BufferImage imagenByN = TratamientoImagenes::binarizarImagen(imagenEcualizada);
         fs::path rutaSalidaByN = ruta_salida / "byn.jpg";
         imagenByN.imprimirImagen(rutaSalidaByN);
+
 
         BufferImage imagenSobel = TratamientoImagenes::filtroSobel(imagenByN);
         fs::path rutaSalidaSobel = ruta_salida / "sobel.jpg";
