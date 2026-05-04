@@ -7,10 +7,6 @@
 #include <opencv2/opencv.hpp>
 #include "BufferImage.h"
 
-// Variables globales para direcciones (las hacemos constates para que sea seguro incluirlo en un .h)
-static int dx[] = {0, 1, 1, 1, 0, -1, -1, -1, 0};
-static int dy[] = {-1, -1, 0, 1, 1, 1, 0, -1, -1};
-
 class TratamientoImagenes
 {
 public:
@@ -48,7 +44,7 @@ public:
 
 #pragma omp parallel
         {
-#pragma omp for collapse(2) // Medir tiempo con y sin paralelizacion
+#pragma omp for collapse(2)
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < height; y++)
