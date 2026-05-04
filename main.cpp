@@ -22,7 +22,6 @@ int main(int argc, char *argv[])
     numThreads = std::stoi(argv[1]);
     fs::path ruta_imagen = fs::path(argv[2]);
 
-    
     if (ruta_proyecto.filename() == "build")
         ruta_proyecto = ruta_proyecto.parent_path();
 
@@ -43,7 +42,7 @@ int main(int argc, char *argv[])
         double inicio = omp_get_wtime(); // Inicio para el tiempo de procesamiento
 
         // Pasa de color a gris
-        BufferImage imagenGrisesA = TratamientoImagenes::convertirAGrisesPromedio(imagenActual);
+        BufferImage imagenGrisesA = TratamientoImagenes::convertirAGrises(imagenActual);
         fs::path rutaSalidaGrisesA = ruta_salida / "grises.jpg";
         imagenGrisesA.imprimirImagen(rutaSalidaGrisesA);
         // Mejora el contraste
@@ -58,7 +57,6 @@ int main(int argc, char *argv[])
         BufferImage imagenByN = TratamientoImagenes::binarizarImagen(imagenEcualizada);
         fs::path rutaSalidaByN = ruta_salida / "byn.jpg";
         imagenByN.imprimirImagen(rutaSalidaByN);
-
 
         BufferImage imagenSobel = TratamientoImagenes::filtroSobel(imagenByN);
         fs::path rutaSalidaSobel = ruta_salida / "sobel.jpg";

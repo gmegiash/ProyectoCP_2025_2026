@@ -14,7 +14,7 @@ static int dy[] = {-1, -1, 0, 1, 1, 1, 0, -1, -1};
 class TratamientoImagenes
 {
 public:
-    static BufferImage convertirAGrisesPromedio(const cv::Mat &imagenEntrada)
+    static BufferImage convertirAGrises(const cv::Mat &imagenEntrada)
     {
         BufferImage imagenSalida(imagenEntrada.cols, imagenEntrada.rows);
 
@@ -90,17 +90,15 @@ public:
         long long suma = 0;
         int total = imagen.getWidth() * imagen.getHeight();
 
-#pragma omp parallel for collapse(2) reduction(max : max_val) reduction(min : min_val) reduction(+ : suma) // Probar con y sin paralelizacion
+#pragma omp parallel for collapse(2) reduction(max : max_val) reduction(min : min_val) reduction(+ : suma)
         for (int x = 0; x < imagen.getWidth(); x++)
         {
             for (int y = 0; y < imagen.getHeight(); y++)
             {
                 int pixel = imagen.getPixel(x, y);
                 if (pixel > max_val)
-                    // Si no funciona los reduction poner "#pragma omp atomic" aqui y quitar los reduction
                     max_val = pixel;
                 if (pixel < min_val)
-                    // Si no funciona los reduction poner "#pragma omp atomic" aqui y quitar los reduction
                     min_val = pixel;
                 suma += pixel;
             }
