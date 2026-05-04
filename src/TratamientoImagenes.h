@@ -61,13 +61,13 @@ public:
             }
 
 #pragma omp single
-        {
-            for (int i = 0; i < 256; i++)
             {
-                suma += histograma[i];
-                LUT[i] = (float)suma * 255 / totalPixeles;
+                for (int i = 0; i < 256; i++)
+                {
+                    suma += histograma[i];
+                    LUT[i] = (float)suma * 255 / totalPixeles;
+                }
             }
-        }
 
 #pragma omp for collapse(2)
             for (int x = 0; x < width; x++)
@@ -121,59 +121,6 @@ public:
             {
                 int pixel = imagen.getPixel(x, y);
                 salida.setPixel(x, y, (pixel > umbral) ? 255 : 0);
-            }
-        }
-        return salida;
-    }
-
-    static BufferImage filtroBinario1(const BufferImage &imagen)
-    {
-        int width = imagen.getWidth(), height = imagen.getHeight();
-        BufferImage salida(width, height);
-
-#pragma omp parallel for collapse(2)
-        for (int x = 1; x < width - 1; x++)
-        {
-            for (int y = 1; y < height - 1; y++)
-            {
-                int p = (imagen.getPixel(x, y) == 255) ? 1 : 0;
-                int b = (imagen.getPixel(x, y - 1) == 255) ? 1 : 0;
-                int g = (imagen.getPixel(x - 1, y) == 255) ? 1 : 0;
-                int d = (imagen.getPixel(x + 1, y) == 255) ? 1 : 0;
-                int e = (imagen.getPixel(x, y + 1) == 255) ? 1 : 0;
-
-                // Buscamos rellenar huecos o eliminar pixeles que no tienen suficientes vecinos conectados
-                int nuevoPixel = p | (b & g & (d | e)) | (d & e & (b | g));
-                salida.setPixel(x, y, (nuevoPixel != 0) ? 255 : 0);
-            }
-        }
-        return salida;
-    }
-
-    static BufferImage filtroBinario2(const BufferImage &imagen)
-    {
-        int width = imagen.getWidth(), height = imagen.getHeight();
-        BufferImage salida(width, height);
-
-#pragma omp parallel for collapse(2)
-        for (int x = 1; x < width - 1; x++)
-        {
-            for (int y = 1; y < height - 1; y++)
-            {
-                int a = (imagen.getPixel(x - 1, y - 1) == 255) ? 1 : 0;
-                int b = (imagen.getPixel(x, y - 1) == 255) ? 1 : 0;
-                int c = (imagen.getPixel(x + 1, y - 1) == 255) ? 1 : 0;
-                int d = (imagen.getPixel(x - 1, y) == 255) ? 1 : 0;
-                int e = (imagen.getPixel(x + 1, y) == 255) ? 1 : 0;
-                int f = (imagen.getPixel(x - 1, y + 1) == 255) ? 1 : 0;
-                int g = (imagen.getPixel(x, y + 1) == 255) ? 1 : 0;
-                int h = (imagen.getPixel(x + 1, y + 1) == 255) ? 1 : 0;
-                int p = (imagen.getPixel(x, y) == 255) ? 1 : 0;
-
-                int term1 = (a | b | d) & (e | g | h);
-                int term2 = (b | c | e) & (d | f | g);
-                int nuevoPixel = p & (term1 | term2);
-                salida.setPixel(x, y, (nuevoPixel != 0) ? 255 : 0);
             }
         }
         return salida;
